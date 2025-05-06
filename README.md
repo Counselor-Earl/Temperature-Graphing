@@ -18,7 +18,7 @@ Run the program with **-g** or **--graph** to perform graphing. The program will
 
 **Example Usage:**
 ~~~
-python main.py input.txt output.csv -g
+python temp-parser.py input.txt output.csv -g
 ~~~
 
 The number of (A, T) device-temp pairs may change from line to line. The log file need not be sorted.
