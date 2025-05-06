@@ -13,7 +13,7 @@ def main():
     # standard parser which accepts 3 arguments
     parser = argparse.ArgumentParser()
     parser.add_argument("inputfile", help="The path to the input file")
-    parser.add_argument("outputname", help="The name of the output file")
+    parser.add_argument("outputfile", help="The name of the output file")
     parser.add_argument("-g", "--graph", help="display a graph of the data", action="store_true")
     args = parser.parse_args()
 
@@ -24,7 +24,7 @@ def main():
         print("Unable to open input file " + args.filename)
         exit(1)
     try:
-        out_file = open(args.outputname, "w", newline='')
+        out_file = open(args.outputfile, "w", newline='')
     except OSError:
         print("Unable to create open/create new output file " + args.output)
         exit(1)
@@ -64,7 +64,7 @@ def main():
         exit(0)
 
     # simple graph of the data using panda's dataframe and matplotlib for visualization
-    df = pd.read_csv(args.outputname, parse_dates=['datetime'])
+    df = pd.read_csv(args.outputfile, parse_dates=['datetime'])
     fig, ax = plt.subplots()
     for device, sub_df in df.groupby('device'):
         sub_df.plot(ax=ax, x='datetime', y='temperature', label=device)
