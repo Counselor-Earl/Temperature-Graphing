@@ -9,6 +9,8 @@ Example line:
 Mar 27 15:38:00 ct521b-18cb heatmon[69756]: [{"A":"mt7915_phy2-pci-0f00","T":72.000}]
 ~~~
 
+![Example graph](https://github.com/Counselor-Earl/Temperature-Graphing/blob/main/Temp_data_0.png)
+
 
 The number of (A, T) device-temp pairs may change from line to line. The log file need not be sorted.
 
