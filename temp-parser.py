@@ -48,7 +48,7 @@ def main():
     """
     for line in in_file:
         # filter out any line that we suspect does not match this format
-        if line.find("heatmon") is -1 or line.index("ERROR") is not -1:
+        if line.find("heatmon") is -1 or line.find("ERROR") is not -1:
             continue
         t = pd.to_datetime(line[7:15])
         device_matches = re.finditer(r'A":"(.*?)"', line)
