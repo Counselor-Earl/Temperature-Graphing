@@ -17,9 +17,11 @@ def main():
     parser.add_argument("--inputfile", help="The path to the input file",
                         default=None)
     parser.add_argument("--outputfile", help="The name of the output file",
-                        default=None)
+                        default="temp-csv-000.csv")
     parser.add_argument("-g", "--graph", help="display a graph of the data",
-                        action="store_true")
+                        default=False, action="store_true")
+    parser.add_argument("-s", "--save_output", help="saves the output graphs as PNGs",
+                        default=False, action="store_true")
     args = parser.parse_args()
 
     # Try to safely open the files passed to us
@@ -49,6 +51,7 @@ def main():
     """
     for line in in_file:
         # filter out any line that we suspect does not match this format
+        # TODO: Separate dates with gaps of >20~ minutes into different plots
         if line.find("heatmon") == -1 or line.find("ERROR") != -1:
             continue
         mon = time.strptime(line[:3], '%b').tm_mon
@@ -70,7 +73,7 @@ def main():
     out_file.close()
 
     # If we are not graphing our data, safely terminate
-    if not args.graph:
+    if not args.graph and not args.save_output:
         exit(0)
 
     # graph of data using panda's dataframe and matplotlib for visualization
@@ -81,7 +84,11 @@ def main():
     ax.legend(title='devices')
     plt.legend(bbox_to_anchor=(1, 1))
     plt.tight_layout()
-    plt.show(block=True)
+    if args.save_output:
+        plt.savefig("temp-graph-001.png") # TODO: dynamic naming
+    if args.graph:
+        plt.show(block=True)
+
 
 
 main()
