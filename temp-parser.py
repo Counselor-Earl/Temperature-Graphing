@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 
 def main():
-    # standard parser which accepts 3 arguments
+    # parser which accepts 3 arguments
     parser = argparse.ArgumentParser()
     parser.add_argument("--inputfile", help="The path to the input file",
                         default=None)
@@ -47,6 +47,9 @@ def main():
     with each (A,T) pair having its own line. This is for ease of graphing.
     """
     for line in in_file:
+        # filter out any line that we suspect does not match this format
+        if line.find("heatmon") is -1 or line.index("ERROR") is not -1:
+            continue
         t = pd.to_datetime(line[7:15])
         device_matches = re.finditer(r'A":"(.*?)"', line)
         temp_matches = re.finditer(r'T":(.*?|null)}', line)
@@ -73,6 +76,8 @@ def main():
     for device, sub_df in df.groupby('device'):
         sub_df.plot(ax=ax, x='datetime', y='temperature', label=device)
     ax.legend(title='devices')
+    plt.legend(bbox_to_anchor=(1, 1))
+    plt.tight_layout()
     plt.show(block=True)
 
 
