@@ -8,6 +8,7 @@ import re
 import csv
 import pandas as pd
 import matplotlib.pyplot as plt
+import time
 
 
 def main():
@@ -50,7 +51,9 @@ def main():
         # filter out any line that we suspect does not match this format
         if line.find("heatmon") == -1 or line.find("ERROR") != -1:
             continue
-        t = pd.to_datetime(line[7:15])
+        mon = time.strptime(line[:3], '%b').tm_mon
+        t = pd.to_datetime(line[4:15], format='%d %H:%M:%S')
+        t = t.replace(month=mon, year=time.localtime().tm_year)
         device_matches = re.finditer(r'A":"(.*?)"', line)
         temp_matches = re.finditer(r'T":(.*?|null)}', line)
         devices = []
