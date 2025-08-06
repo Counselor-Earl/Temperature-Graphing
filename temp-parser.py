@@ -1,3 +1,4 @@
+#!/bin/env python3
 """
 Small program that parses temperature data from an input file,
 then saves the data in a clean csv file and presents a graph of it.
@@ -12,9 +13,12 @@ import matplotlib.pyplot as plt
 def main():
     # standard parser which accepts 3 arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument("inputfile", help="The path to the input file")
-    parser.add_argument("outputfile", help="The name of the output file")
-    parser.add_argument("-g", "--graph", help="display a graph of the data", action="store_true")
+    parser.add_argument("--inputfile", help="The path to the input file",
+                        default=None)
+    parser.add_argument("--outputfile", help="The name of the output file",
+                        default=None)
+    parser.add_argument("-g", "--graph", help="display a graph of the data",
+                        action="store_true")
     args = parser.parse_args()
 
     # Try to safely open the files passed to us
@@ -38,8 +42,8 @@ def main():
     MON 00 00:00:00 .(*?) [({"A":"DEVICENAME", "T":(TEMP|null)})*?]
     The number of (A,T) pairs may differ from line to line.
     The values of T may be null due to issues in temperature reporting.
-    
-    A line with n (A,T) pairs will be written into the CSV output file as n lines,
+
+    A line with n (A,T) pairs will be written into output file as n lines,
     with each (A,T) pair having its own line. This is for ease of graphing.
     """
     for line in in_file:
@@ -59,11 +63,11 @@ def main():
     in_file.close()
     out_file.close()
 
-    # If we are not graphing our data, the program is complete and may safely terminate
+    # If we are not graphing our data, safely terminate
     if not args.graph:
         exit(0)
 
-    # simple graph of the data using panda's dataframe and matplotlib for visualization
+    # graph of data using panda's dataframe and matplotlib for visualization
     df = pd.read_csv(args.outputfile, parse_dates=['datetime'])
     fig, ax = plt.subplots()
     for device, sub_df in df.groupby('device'):
