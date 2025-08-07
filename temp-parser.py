@@ -22,6 +22,8 @@ def main():
                         default=False, action="store_true")
     parser.add_argument("-s", "--save_output", help="saves the output graphs as PNGs",
                         default=False, action="store_true")
+    parser.add_argument("-r", "--report", help="create an index.html page with the graph(s)",
+                        default=False, action="store_true")
     args = parser.parse_args()
 
     # Try to safely open the files passed to us
@@ -42,7 +44,7 @@ def main():
 
     """
     Look through each line of the input file. Each line should be in the form:
-    MON 00 00:00:00 .(*?) [({"A":"DEVICENAME", "T":(TEMP|null)})*?]
+    MON DD HH:MM:SS .(*?) [({"A":"DEVICENAME", "T":(TEMP|null)})*?]
     The number of (A,T) pairs may differ from line to line.
     The values of T may be null due to issues in temperature reporting.
 
@@ -73,7 +75,7 @@ def main():
     out_file.close()
 
     # If we are not graphing our data, safely terminate
-    if not args.graph and not args.save_output:
+    if not args.graph and not (args.save_output or args.report):
         exit(0)
 
     # graph of data using panda's dataframe and matplotlib for visualization
@@ -89,6 +91,11 @@ def main():
     if args.graph:
         plt.show(block=True)
 
-
+    if args.report:
+        # write an index.html page with the graphs we made
+        with open('index.html', 'w') as f:
+            f.write("<!DOCTYPE HTML> \n <html> \n <b>")
+            f.write('<img src=\"temp-graph-001.png\" alt=\"graph 1\">')
+            f.write("</b> \n </html>")
 
 main()
