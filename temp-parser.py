@@ -12,15 +12,16 @@ import matplotlib.dates as mdates
 import time
 import os
 
+_output_dir_name = "Temp_Graphing_Output"
 
 def _next_table_name(num: int) -> str:
     p_num = str(num).zfill(3)
-    return "Output/temp_csv_" + p_num + ".csv"
+    return _output_dir_name + "/temp_csv_" + p_num + ".csv"
 
 
 def _next_png_name(num: int) -> str:
     p_num = str(num).zfill(3)
-    return "Output/temperature_data_" + p_num + ".png"
+    return _output_dir_name + "/temperature_data_" + p_num + ".png"
 
 
 def _switch_out_file(tables, num: int):
@@ -55,7 +56,7 @@ def main():
         exit(1)
 
     try:
-        os.makedirs("Output", exist_ok=True)
+        os.makedirs(_output_dir_name, exist_ok=True)
     except OSError:
         print("Error creating output directory")
         exit(1)
@@ -111,12 +112,13 @@ def main():
         fig, ax = plt.subplots()
         for device, sub_df in df.groupby('device'):
             sub_df.plot(ax=ax, x='datetime', y='temperature', label=device)
+        _, labels = plt.gca().get_legend_handles_labels()
         ax.legend(title='devices')
+        plt.legend(bbox_to_anchor=(1, 1))
         ax.xaxis.set_major_formatter(date_format)
         plt.title(str(rig))
         plt.xlabel("Time")
         plt.ylabel("Temperature (" + chr(176) + "C)")
-        plt.legend(bbox_to_anchor=(1, 1))
         plt.tight_layout()
         if args.save_output or args.report:
             plt.savefig(_next_png_name(file_num))
