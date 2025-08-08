@@ -8,6 +8,7 @@ import re
 import csv
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 import time
 import os
 
@@ -30,7 +31,6 @@ def _switch_out_file(tables, num: int):
 
 
 def main():
-    # parser which accepts 3 arguments
     parser = argparse.ArgumentParser()
     parser.add_argument("--inputfile", help="The path to the input file",
                         default=None)
@@ -70,7 +70,7 @@ def main():
     A line with n (A,T) pairs will be written into output file as n lines,
     with each (A,T) pair having its own line. This is for ease of graphing.
     """
-
+    rig = None
     out_tables = []
     out_writer = _switch_out_file(out_tables, len(out_tables))
     prev_date = None
@@ -85,6 +85,9 @@ def main():
             # Switch to new table
             out_writer = _switch_out_file(out_tables, len(out_tables))
         prev_date = t
+        if rig is None:
+            rig = re.search(r':.. .*? ', line)
+            rig = rig.group(0)[4:-1] if rig else None
         device_matches = re.finditer(r'A":"(.*?)"', line)
         temp_matches = re.finditer(r'T":(.*?|null)}', line)
         devices = []
@@ -100,6 +103,8 @@ def main():
         file.flush()
         file.close()
 
+    date_format = mdates.DateFormatter('%H:%M')
+
     for file_num in range(len(out_tables)):
         file = out_tables[file_num]
         df = pd.read_csv(file.name, parse_dates=['datetime'])
@@ -107,6 +112,10 @@ def main():
         for device, sub_df in df.groupby('device'):
             sub_df.plot(ax=ax, x='datetime', y='temperature', label=device)
         ax.legend(title='devices')
+        ax.xaxis.set_major_formatter(date_format)
+        plt.title(str(rig))
+        plt.xlabel("Time")
+        plt.ylabel("Temperature (" + chr(176) + "C)")
         plt.legend(bbox_to_anchor=(1, 1))
         plt.tight_layout()
         if args.save_output or args.report:
