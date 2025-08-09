@@ -12,20 +12,21 @@ import matplotlib.dates as mdates
 import time
 import os
 
-_output_dir_name = "Temp_Graphing_Output"
+_output_dir_name = "Temp_Graphing_"
+_max_legend_entries = 4
 
-def _next_table_name(num: int) -> str:
+def _next_table_name(num: int, timestamp:str) -> str:
     p_num = str(num).zfill(3)
-    return _output_dir_name + "/temp_csv_" + p_num + ".csv"
+    return _output_dir_name + timestamp + "/temp_csv_" + p_num + ".csv"
 
 
-def _next_png_name(num: int) -> str:
+def _next_png_name(num: int, timestamp:str) -> str:
     p_num = str(num).zfill(3)
-    return _output_dir_name + "/temperature_data_" + p_num + ".png"
+    return _output_dir_name + timestamp + "/temperature_data_" + p_num + ".png"
 
 
-def _switch_out_file(tables, num: int):
-    tables.append(open(_next_table_name(num), 'w+', newline=''))
+def _switch_out_file(tables, num: int, timestamp):
+    tables.append(open(_next_table_name(num, timestamp), 'w+', newline=''))
     out_writer = csv.writer(tables[num])
     out_writer.writerow(['datetime', 'device', 'temperature'])
     return out_writer
@@ -55,8 +56,9 @@ def main():
         print("Unable to open input file " + args.filename)
         exit(1)
 
+    _timestamp_str = time.ctime()[4:13].replace(' ', '_')
     try:
-        os.makedirs(_output_dir_name, exist_ok=True)
+        os.makedirs((_output_dir_name + _timestamp_str), exist_ok=True)
     except OSError:
         print("Error creating output directory")
         exit(1)
@@ -73,7 +75,7 @@ def main():
     """
     rig = None
     out_tables = []
-    out_writer = _switch_out_file(out_tables, len(out_tables))
+    out_writer = _switch_out_file(out_tables, len(out_tables), _timestamp_str)
     prev_date = None
     for line in in_file:
         # Skip lines that we suspect don't fit our pattern
@@ -84,7 +86,7 @@ def main():
         t = t.replace(month=mon, year=time.localtime().tm_year)
         if prev_date and (t - prev_date).seconds > (args.cutoff * 60):
             # Switch to new table
-            out_writer = _switch_out_file(out_tables, len(out_tables))
+            out_writer = _switch_out_file(out_tables, len(out_tables), _timestamp_str)
         prev_date = t
         if rig is None:
             rig = re.search(r':.. .*? ', line)
@@ -104,6 +106,8 @@ def main():
         file.flush()
         file.close()
 
+    in_file.close()
+
     date_format = mdates.DateFormatter('%H:%M')
 
     for file_num in range(len(out_tables)):
@@ -119,19 +123,22 @@ def main():
         plt.title(str(rig))
         plt.xlabel("Time")
         plt.ylabel("Temperature (" + chr(176) + "C)")
-        plt.tight_layout()
+        #plt.tight_layout()
+        _, labels = plt.gca().get_legend_handles_labels()
+        if len(labels) > _max_legend_entries:
+            plt.gca().get_legend().remove()
         if args.save_output or args.report:
-            plt.savefig(_next_png_name(file_num))
+            plt.savefig(_next_png_name(file_num, _timestamp_str))
         if args.graph:
             plt.show()
 
     if args.report:
         # write an index.html page with the graphs we made
-        with open('temperature-report.html', 'w') as f:
+        with open('temperature_report_' + _timestamp_str + '.html', 'w') as f:
             f.write("<!DOCTYPE HTML> \n <html> \n <b>")
             for file_num in range(len(out_tables)):
                 f.write('<img src=\"' +
-                        _next_png_name(file_num) +
+                        _next_png_name(file_num, _timestamp_str) +
                         '\" alt=\"graph 1\">')
             f.write("</b> \n </html>")
 
