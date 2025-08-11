@@ -112,10 +112,11 @@ def main():
 
     for file_num in range(len(out_tables)):
         file = out_tables[file_num]
-        df = pd.read_csv(file.name, parse_dates=['datetime'])
-        fig, ax = plt.subplots()
+        df = pd.read_csv(file.name)
+        df['datetime'] = pd.to_datetime(df['datetime'], format="%Y-%m-%d %H:%M:%S")
+        _, ax = plt.subplots()
         for device, sub_df in df.groupby('device'):
-            sub_df.plot(ax=ax, x='datetime', y='temperature', label=device)
+            sub_df.plot(ax=ax, x='datetime', y='temperature', label=device, x_compat=True)
         _, labels = plt.gca().get_legend_handles_labels()
         ax.legend(title='devices')
         plt.legend(bbox_to_anchor=(1, 1))
@@ -123,7 +124,6 @@ def main():
         plt.title(str(rig))
         plt.xlabel("Time")
         plt.ylabel("Temperature (" + chr(176) + "C)")
-        #plt.tight_layout()
         _, labels = plt.gca().get_legend_handles_labels()
         if len(labels) > _max_legend_entries:
             plt.gca().get_legend().remove()
