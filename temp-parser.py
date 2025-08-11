@@ -53,7 +53,7 @@ def main():
     try:
         in_file = open(args.inputfile, "r")
     except OSError:
-        print("Unable to open input file " + args.filename)
+        print("Unable to open input file " + args.inputfile)
         exit(1)
 
     _timestamp_str = time.ctime()[4:13].replace(' ', '_')
@@ -84,7 +84,7 @@ def main():
         mon = time.strptime(line[:3], '%b').tm_mon
         t = pd.to_datetime(line[4:15], format='%d %H:%M:%S')
         t = t.replace(month=mon, year=time.localtime().tm_year)
-        if prev_date and (t - prev_date).seconds > (args.cutoff * 60):
+        if prev_date and (t - prev_date).seconds > (int(args.cutoff) * 60):
             # Switch to new table
             out_writer = _switch_out_file(out_tables, len(out_tables), _timestamp_str)
         prev_date = t
