@@ -77,6 +77,7 @@ def main():
     _start = None
     _end = None
     out_tables = []
+    table_stats = []
     out_writer = _switch_out_file(out_tables, len(out_tables), _timestamp_str)
     prev_date = None
     for line in in_file:
@@ -120,6 +121,11 @@ def main():
         for device, sub_df in df.groupby('device'):
             sub_df.plot(ax=ax, x='datetime', y='temperature', label=device, x_compat=True)
         _, labels = plt.gca().get_legend_handles_labels()
+        table_stats.append({
+            'min': df['temperature'].min(),
+            'max': df['temperature'].max(),
+            'avg': round(df['temperature'].mean(), 2)
+        })
         ax.legend(title='devices')
         plt.legend(bbox_to_anchor=(1, 1))
         ax.xaxis.set_major_formatter(date_format)
@@ -144,6 +150,11 @@ def main():
                 f.write('<img src=\"' +
                         _next_png_name(file_num, _timestamp_str) +
                         '\" alt=\"graph 1\">')
+                f.write('<table>\n  <tr>\n  <th>Min </th><th> Max </th><th> Avg</th>\n  </tr>')
+                f.write(f'<td>{table_stats[file_num]['min']}</td>')
+                f.write(f'<td>{table_stats[file_num]['max']}</td>')
+                f.write(f'<td>{table_stats[file_num]['avg']}</td>')
+                f.write('</table>')
             f.write("</b> \n </html>")
 
 
