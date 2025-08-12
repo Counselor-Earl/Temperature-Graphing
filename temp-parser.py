@@ -15,14 +15,14 @@ import os
 _output_dir_name = "Temp_Graphing_"
 _max_legend_entries = 4
 
-def _next_table_name(num: int, timestamp:str) -> str:
+def _next_table_name(num: int, timestamp:str, core=False) -> str:
     p_num = str(num).zfill(3)
-    return _output_dir_name + timestamp + "/temp_csv_" + p_num + ".csv"
+    return f"{_output_dir_name}{timestamp}/{"Core" if core else ""}temp_csv_{p_num}.csv"
 
 
 def _next_png_name(num: int) -> str:
     p_num = str(num).zfill(3)
-    return "temperature_data_" + p_num + ".png"
+    return f"temperature_data_{p_num}.png"
 
 
 def _switch_out_file(tables, num: int, timestamp):
@@ -34,10 +34,12 @@ def _switch_out_file(tables, num: int, timestamp):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--inputfile", help="The path to the input file",
+    parser.add_argument("-i", "--inputfile", help="The path to the input file",
                         default=None)
     parser.add_argument("-g", "--graph", help="display a graph of the data",
                         default=False, action="store_true")
+    parser.add_argument("-m", "--mode", help="change the type of graph created",
+                        default="all")
     parser.add_argument("-s", "--save_output",
                         help="saves the output graphs as PNGs",
                         default=False, action="store_true")
@@ -118,24 +120,31 @@ def main():
         df = pd.read_csv(file.name)
         df['datetime'] = pd.to_datetime(df['datetime'], format="%Y-%m-%d %H:%M:%S")
         _, ax = plt.subplots()
-        for device, sub_df in df.groupby('device'):
-            sub_df.plot(ax=ax, x='datetime', y='temperature', label=device, x_compat=True)
+        min_temps = df.groupby('datetime')['temperature'].min()
+        max_temps = df.groupby('datetime')['temperature'].max()
+        mean_temps = df.groupby('datetime')['temperature'].mean()
+        plt.plot(mean_temps.index, mean_temps.values, color='red')
+        if args.mode == "all":
+            for device, sub_df in df.groupby('device'):
+                sub_df.plot(ax=ax, x='datetime', y='temperature', label=device, x_compat=True)
+            ax.legend(title='devices')
+            plt.legend(bbox_to_anchor=(1, 1))
         _, labels = plt.gca().get_legend_handles_labels()
         table_stats.append({
             'min': df['temperature'].min(),
             'max': df['temperature'].max(),
             'avg': round(df['temperature'].mean(), 2)
         })
-        ax.legend(title='devices')
-        plt.legend(bbox_to_anchor=(1, 1))
         ax.xaxis.set_major_formatter(date_format)
         _start = str(df['datetime'].iloc[0].month) + "/" + str(df["datetime"].iloc[0].day)
         _end = str(df['datetime'].iloc[-1].month) + "/" + str(df["datetime"].iloc[-1].day)
         plt.title(f"{rig} From {_start} to {_end}")
         plt.xlabel("Time")
         plt.ylabel("Temperature (" + chr(176) + "C)")
+        if args.mode == "band":
+            plt.fill_between(min_temps.index, min_temps.values, max_temps.values, color='blue', alpha=0.3)
         _, labels = plt.gca().get_legend_handles_labels()
-        if len(labels) > _max_legend_entries:
+        if args.mode != "band" and len(labels) > _max_legend_entries:
             plt.gca().get_legend().remove()
         if args.save_output or args.report:
             plt.savefig(_output_dir_name + _timestamp_str + "/" + _next_png_name(file_num))
