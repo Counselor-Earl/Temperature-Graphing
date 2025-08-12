@@ -74,6 +74,8 @@ def main():
     with each (A,T) pair having its own line. This is for ease of graphing.
     """
     rig = None
+    _start = None
+    _end = None
     out_tables = []
     out_writer = _switch_out_file(out_tables, len(out_tables), _timestamp_str)
     prev_date = None
@@ -121,7 +123,9 @@ def main():
         ax.legend(title='devices')
         plt.legend(bbox_to_anchor=(1, 1))
         ax.xaxis.set_major_formatter(date_format)
-        plt.title(str(rig))
+        _start = str(df['datetime'].iloc[0].month) + "/" + str(df["datetime"].iloc[0].day)
+        _end = str(df['datetime'].iloc[-1].month) + "/" + str(df["datetime"].iloc[-1].day)
+        plt.title(f"{rig} From {_start} to {_end}")
         plt.xlabel("Time")
         plt.ylabel("Temperature (" + chr(176) + "C)")
         _, labels = plt.gca().get_legend_handles_labels()
