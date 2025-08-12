@@ -20,9 +20,9 @@ def _next_table_name(num: int, timestamp:str) -> str:
     return _output_dir_name + timestamp + "/temp_csv_" + p_num + ".csv"
 
 
-def _next_png_name(num: int, timestamp:str) -> str:
+def _next_png_name(num: int) -> str:
     p_num = str(num).zfill(3)
-    return _output_dir_name + timestamp + "/temperature_data_" + p_num + ".png"
+    return "temperature_data_" + p_num + ".png"
 
 
 def _switch_out_file(tables, num: int, timestamp):
@@ -138,17 +138,17 @@ def main():
         if len(labels) > _max_legend_entries:
             plt.gca().get_legend().remove()
         if args.save_output or args.report:
-            plt.savefig(_next_png_name(file_num, _timestamp_str))
+            plt.savefig(_output_dir_name + _timestamp_str + "/" + _next_png_name(file_num))
         if args.graph:
             plt.show()
 
     if args.report:
         # write an index.html page with the graphs we made
-        with open('temperature_report_' + _timestamp_str + '.html', 'w') as f:
+        with open(_output_dir_name + _timestamp_str + '/temperature_report_' + _timestamp_str + '.html', 'w') as f:
             f.write("<!DOCTYPE HTML> \n <html> \n <b>")
             for file_num in range(len(out_tables)):
                 f.write('<img src=\"' +
-                        _next_png_name(file_num, _timestamp_str) +
+                        _next_png_name(file_num) +
                         '\" alt=\"graph 1\">')
                 f.write('<table>\n  <tr>\n  <th>Min </th><th> Max </th><th> Avg</th>\n  </tr>')
                 f.write(f'<td>{table_stats[file_num]['min']}</td>')
