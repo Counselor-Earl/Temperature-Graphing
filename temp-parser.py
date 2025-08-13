@@ -12,12 +12,14 @@ import matplotlib.dates as mdates
 import time
 import os
 
-_output_dir_name = "Temp_Graphing_"
+_out_dir = "Temp_Graphing_"
 _max_legend_entries = 4
 
-def _next_table_name(num: int, timestamp:str, core=False) -> str:
+
+def _next_table_name(num: int, timestamp: str, core=False) -> str:
     p_num = str(num).zfill(3)
-    return f"{_output_dir_name}{timestamp}/{"Core" if core else ""}temp_csv_{p_num}.csv"
+    c = "Core" if core else ""
+    return f"{_out_dir}{timestamp}/{c}temp_csv_{p_num}.csv"
 
 
 def _next_png_name(num: int) -> str:
@@ -25,20 +27,26 @@ def _next_png_name(num: int) -> str:
     return f"temperature_data_{p_num}.png"
 
 
-def _switch_out_file(tables, num: int, timestamp):
-    tables.append(open(_next_table_name(num, timestamp), 'w+', newline=''))
-    out_writer = csv.writer(tables[num])
-    out_writer.writerow(['datetime', 'device', 'temperature'])
-    return out_writer
-
 def _switch_out_files(tables, num: int, timestamp):
     tables.append(open(_next_table_name(num, timestamp), 'w+', newline=''))
-    tables.append(open(_next_table_name(num+1, timestamp, True), 'w+', newline=''))
+    tables.append(open(_next_table_name(num+1, timestamp, True),
+                       'w+', newline=''))
     rad_writer = csv.writer(tables[num])
     core_writer = csv.writer(tables[num + 1])
     rad_writer.writerow(['datetime', 'device', 'temperature'])
     core_writer.writerow(['datetime', 'device', 'temperature'])
     return rad_writer, core_writer
+
+
+def _get_graph_title(df, num, rig):
+    dt = df['datetime'].iloc
+    start_d = f"{str(dt[0].month)}/{str(dt[0].day)}"
+    start_t = f"{str(dt[0].hour)}:{str(dt[0].minute)}"
+    end_d = f"{str(dt[-1].month)}/{str(dt[-1].day)}"
+    end_t = f"{str(dt[-1].hour)}:{str(dt[-1].minute)}"
+    dev = "Cores" if num % 2 == 0 else "Radios"
+    return f"{rig} {dev} From {start_d} {start_t} to {end_d} {end_t}"
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -46,7 +54,7 @@ def main():
                         default=None)
     parser.add_argument("-g", "--graph", help="display a graph of the data",
                         default=False, action="store_true")
-    parser.add_argument("-m", "--mode", help="change the type of graph created",
+    parser.add_argument("-m", "--mode", help="change style of graph created",
                         default="all")
     parser.add_argument("-s", "--save_output",
                         help="saves the output graphs as PNGs",
@@ -66,9 +74,9 @@ def main():
         print("Unable to open input file " + args.inputfile)
         exit(1)
 
-    _timestamp_str = time.ctime()[4:13].replace(' ', '_')
+    _tstamp = time.ctime()[4:13].replace(' ', '_')
     try:
-        os.makedirs((_output_dir_name + _timestamp_str), exist_ok=True)
+        os.makedirs((_out_dir + _tstamp), exist_ok=True)
     except OSError:
         print("Error creating output directory")
         exit(1)
@@ -85,11 +93,10 @@ def main():
     """
 
     rig = None
-    _start = None
-    _end = None
     out_tables = []
     table_stats = []
-    rad_writer, core_writer = _switch_out_files(out_tables, len(out_tables), _timestamp_str)
+    rad_writer, core_writer = _switch_out_files(out_tables,
+                                                len(out_tables), _tstamp)
     prev_date = None
     for line in in_file:
         # Skip lines that we suspect don't fit our pattern
@@ -100,7 +107,9 @@ def main():
         t = t.replace(month=mon, year=time.localtime().tm_year)
         if prev_date and (t - prev_date).seconds > (int(args.cutoff) * 60):
             # Switch to new table
-            rad_writer, core_writer = _switch_out_files(out_tables, len(out_tables), _timestamp_str)
+            rad_writer, core_writer = _switch_out_files(out_tables,
+                                                        len(out_tables),
+                                                        _tstamp)
         prev_date = t
         if rig is None:
             rig = re.search(r':.. .*? ', line)
@@ -130,7 +139,8 @@ def main():
     for file_num in range(len(out_tables)):
         file = out_tables[file_num]
         df = pd.read_csv(file.name)
-        df['datetime'] = pd.to_datetime(df['datetime'], format="%Y-%m-%d %H:%M:%S")
+        df['datetime'] = pd.to_datetime(df['datetime'],
+                                        format="%Y-%m-%d %H:%M:%S")
         _, ax = plt.subplots()
         min_temps = df.groupby('datetime')['temperature'].min()
         max_temps = df.groupby('datetime')['temperature'].max()
@@ -139,7 +149,8 @@ def main():
             plt.plot(mean_temps.index, mean_temps.values, color='red')
         if args.mode == "all":
             for device, sub_df in df.groupby('device'):
-                sub_df.plot(ax=ax, x='datetime', y='temperature', label=device, x_compat=True)
+                sub_df.plot(ax=ax, x='datetime',
+                            y='temperature', label=device, x_compat=True)
             ax.legend(title='devices')
             plt.legend(bbox_to_anchor=(1, 1))
         _, labels = plt.gca().get_legend_handles_labels()
@@ -149,30 +160,32 @@ def main():
             'avg': round(df['temperature'].mean(), 2)
         })
         ax.xaxis.set_major_formatter(date_format)
-        _start = str(df['datetime'].iloc[0].month) + "/" + str(df["datetime"].iloc[0].day)
-        _end = str(df['datetime'].iloc[-1].month) + "/" + str(df["datetime"].iloc[-1].day)
-        plt.title(f"{rig} {"Cores" if file_num % 2 == 0 else "Radios"} From {_start} to {_end}")
+        plt.title(_get_graph_title(df, file_num, rig))
         plt.xlabel("Time")
         plt.ylabel("Temperature (" + chr(176) + "C)")
         if args.mode == "band":
-            plt.fill_between(min_temps.index, min_temps.values, max_temps.values, color='blue', alpha=0.3)
+            plt.fill_between(min_temps.index,
+                             min_temps.values,
+                             max_temps.values,
+                             color='blue', alpha=0.3)
         _, labels = plt.gca().get_legend_handles_labels()
         if args.mode != "band" and len(labels) > _max_legend_entries:
             plt.gca().get_legend().remove()
         if args.save_output or args.report:
-            plt.savefig(_output_dir_name + _timestamp_str + "/" + _next_png_name(file_num))
+            plt.savefig(_out_dir + _tstamp + "/" + _next_png_name(file_num))
         if args.graph:
             plt.show()
 
     if args.report:
         # write an index.html page with the graphs we made
-        with open(_output_dir_name + _timestamp_str + '/temperature_report_' + _timestamp_str + '.html', 'w') as f:
+        with open(_out_dir + _tstamp + '/report' + '.html', 'w') as f:
             f.write("<!DOCTYPE HTML> \n <html> \n <b>")
             for file_num in range(len(out_tables)):
                 f.write('<img src=\"' +
                         _next_png_name(file_num) +
                         '\" alt=\"graph 1\">')
-                f.write('<table>\n  <tr>\n  <th>Min </th><th> Max </th><th> Avg</th>\n  </tr>')
+                f.write('<table><tr><th>Min </th>')
+                f.write('<th> Max </th><th> Avg</th></tr>')
                 f.write(f'<td>{table_stats[file_num]['min']}</td>')
                 f.write(f'<td>{table_stats[file_num]['max']}</td>')
                 f.write(f'<td>{table_stats[file_num]['avg']}</td>')
