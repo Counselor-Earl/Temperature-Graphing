@@ -83,6 +83,7 @@ def main():
     A line with n (A,T) pairs will be written into output file as n lines,
     with each (A,T) pair having its own line. This is for ease of graphing.
     """
+
     rig = None
     _start = None
     _end = None
@@ -134,7 +135,8 @@ def main():
         min_temps = df.groupby('datetime')['temperature'].min()
         max_temps = df.groupby('datetime')['temperature'].max()
         mean_temps = df.groupby('datetime')['temperature'].mean()
-        plt.plot(mean_temps.index, mean_temps.values, color='red')
+        if args.mode == "band":
+            plt.plot(mean_temps.index, mean_temps.values, color='red')
         if args.mode == "all":
             for device, sub_df in df.groupby('device'):
                 sub_df.plot(ax=ax, x='datetime', y='temperature', label=device, x_compat=True)
