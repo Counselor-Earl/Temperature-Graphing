@@ -31,6 +31,14 @@ def _switch_out_file(tables, num: int, timestamp):
     out_writer.writerow(['datetime', 'device', 'temperature'])
     return out_writer
 
+def _switch_out_files(tables, num: int, timestamp):
+    tables.append(open(_next_table_name(num, timestamp), 'w+', newline=''))
+    tables.append(open(_next_table_name(num+1, timestamp, True), 'w+', newline=''))
+    rad_writer = csv.writer(tables[num])
+    core_writer = csv.writer(tables[num + 1])
+    rad_writer.writerow(['datetime', 'device', 'temperature'])
+    core_writer.writerow(['datetime', 'device', 'temperature'])
+    return rad_writer, core_writer
 
 def main():
     parser = argparse.ArgumentParser()
@@ -80,7 +88,7 @@ def main():
     _end = None
     out_tables = []
     table_stats = []
-    out_writer = _switch_out_file(out_tables, len(out_tables), _timestamp_str)
+    rad_writer, core_writer = _switch_out_files(out_tables, len(out_tables), _timestamp_str)
     prev_date = None
     for line in in_file:
         # Skip lines that we suspect don't fit our pattern
@@ -91,7 +99,7 @@ def main():
         t = t.replace(month=mon, year=time.localtime().tm_year)
         if prev_date and (t - prev_date).seconds > (int(args.cutoff) * 60):
             # Switch to new table
-            out_writer = _switch_out_file(out_tables, len(out_tables), _timestamp_str)
+            rad_writer, core_writer = _switch_out_files(out_tables, len(out_tables), _timestamp_str)
         prev_date = t
         if rig is None:
             rig = re.search(r':.. .*? ', line)
@@ -104,8 +112,11 @@ def main():
             devices.append(device_match.group(1))
         for temp_match in temp_matches:
             temps.append(temp_match.group(1))
-        for i in range(len(temps)):
-            out_writer.writerow([t, devices[i], temps[i]])
+        for i in range(len(devices)):
+            if "core" in devices[i]:
+                core_writer.writerow([t, devices[i], temps[i]])
+            else:
+                rad_writer.writerow([t, devices[i], temps[i]])
 
     for file in out_tables:
         file.flush()
@@ -138,7 +149,7 @@ def main():
         ax.xaxis.set_major_formatter(date_format)
         _start = str(df['datetime'].iloc[0].month) + "/" + str(df["datetime"].iloc[0].day)
         _end = str(df['datetime'].iloc[-1].month) + "/" + str(df["datetime"].iloc[-1].day)
-        plt.title(f"{rig} From {_start} to {_end}")
+        plt.title(f"{rig} {"Cores" if file_num % 2 == 0 else "Radios"} From {_start} to {_end}")
         plt.xlabel("Time")
         plt.ylabel("Temperature (" + chr(176) + "C)")
         if args.mode == "band":
